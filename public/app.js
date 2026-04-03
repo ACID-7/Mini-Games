@@ -158,7 +158,7 @@ async function refreshState() {
 function startPolling() {
   if (pollHandle) clearInterval(pollHandle);
   refreshState();
-  pollHandle = setInterval(refreshState, 1200);
+  pollHandle = setInterval(refreshState, 2000);
 }
 
 async function postWithSession(path, extra = {}) {

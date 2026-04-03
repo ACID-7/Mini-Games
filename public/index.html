@@ -75,14 +75,14 @@
         <form id="createForm" class="card form-card">
           <h2>Create room</h2>
           <p class="form-note">Start a lobby instantly. You become host and can switch modes before the match starts.</p>
-          <label>Display name<input id="createName" required maxlength="20" placeholder="Akmal" /></label>
+          <label for="createName">Display name</label><input id="createName" required maxlength="20" placeholder="Akmal" />
           <button type="submit">Create room</button>
         </form>
         <form id="joinForm" class="card form-card">
           <h2>Join room</h2>
           <p class="form-note">Use the host's room code. Rejoining is fast if you keep the same browser session.</p>
-          <label>Display name<input id="joinName" required maxlength="20" placeholder="Friend 1" /></label>
-          <label>Room code<input id="joinCode" required maxlength="6" placeholder="ABC123" /></label>
+          <label for="joinName">Display name</label><input id="joinName" required maxlength="20" placeholder="Friend 1" />
+          <label for="joinCode">Room code</label><input id="joinCode" required maxlength="6" placeholder="ABC123" />
           <button type="submit">Join room</button>
         </form>
       </div>
