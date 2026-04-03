@@ -1,6 +1,6 @@
 let modesMeta = {};
 let roomState = null;
-let session = JSON.parse(localStorage.getItem('partyFusionSession') || 'null');
+let session = JSON.parse(localStorage.getItem("partyFusionSession") || "null");
 let voiceDraft = null;
 let mediaRecorder = null;
 let recordChunks = [];
@@ -11,21 +11,25 @@ let noticeHandle = null;
 
 const $ = (id) => document.getElementById(id);
 
-function escapeHtml(value = '') {
+function escapeHtml(value = "") {
   return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function toTitle(text) {
-  return String(text).replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase());
+  return String(text)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
 function playerName(id) {
-  return roomState?.players?.find((player) => player.id === id)?.name || 'Unknown';
+  return (
+    roomState?.players?.find((player) => player.id === id)?.name || "Unknown"
+  );
 }
 
 function isHost() {
@@ -33,82 +37,93 @@ function isHost() {
 }
 
 function renderConnection(text) {
-  const badge = $('connectionBadge');
+  const badge = $("connectionBadge");
   badge.textContent = text;
-  badge.dataset.state = /connected/i.test(text) ? 'connected' : /disconnected/i.test(text) ? 'disconnected' : 'pending';
+  badge.dataset.state = /connected/i.test(text)
+    ? "connected"
+    : /disconnected/i.test(text)
+      ? "disconnected"
+      : "pending";
 }
 
-function showNotice(message, tone = 'info') {
-  const notice = $('notice');
+function showNotice(message, tone = "info") {
+  const notice = $("notice");
   notice.textContent = message;
   notice.dataset.tone = tone;
-  notice.classList.remove('hidden');
+  notice.classList.remove("hidden");
   clearTimeout(noticeHandle);
   noticeHandle = setTimeout(() => {
-    notice.classList.add('hidden');
+    notice.classList.add("hidden");
   }, 3400);
 }
 
 function handleError(err) {
-  const message = err?.message || 'Something went wrong.';
-  showNotice(message, 'error');
+  const message = err?.message || "Something went wrong.";
+  showNotice(message, "error");
 }
 
-async function api(path, body, method = 'POST') {
+async function api(path, body, method = "POST") {
   const options = { method, headers: {} };
-  if (method !== 'GET') {
-    options.headers['Content-Type'] = 'application/json';
+  if (method !== "GET") {
+    options.headers["Content-Type"] = "application/json";
     options.body = JSON.stringify(body || {});
   }
 
   const response = await fetch(path, options);
-  const contentType = response.headers.get('content-type') || '';
+  const contentType = response.headers.get("content-type") || "";
 
-  if (!contentType.includes('application/json')) {
+  if (!contentType.includes("application/json")) {
     const text = await response.text();
     if (/<!doctype html/i.test(text)) {
-      throw new Error('The UI is being served without the Party Fusion backend. Start the app with `npm start` and open http://localhost:3000.');
+      throw new Error(
+        "The UI is being served without the Party Fusion backend. Start the app with `npm start` and open http://localhost:3000.",
+      );
     }
-    throw new Error('Unexpected server response.');
+    throw new Error("Unexpected server response.");
   }
 
   const data = await response.json();
-  if (!response.ok || data.error) throw new Error(data.error || 'Request failed.');
+  if (!response.ok || data.error)
+    throw new Error(data.error || "Request failed.");
   return data;
 }
 
 async function fetchModes() {
-  const data = await api('/api/modes', null, 'GET');
+  const data = await api("/api/modes", null, "GET");
   modesMeta = data.modes;
   populateModes();
 }
 
 function populateModes() {
-  const select = $('modeSelect');
+  const select = $("modeSelect");
   if (!select) return;
 
   select.innerHTML = Object.entries(modesMeta)
-    .map(([key, meta]) => `<option value="${key}">${escapeHtml(meta.name)}</option>`)
-    .join('');
+    .map(
+      ([key, meta]) =>
+        `<option value="${key}">${escapeHtml(meta.name)}</option>`,
+    )
+    .join("");
 }
 
 function saveSession(nextSession) {
   session = nextSession;
-  if (session) localStorage.setItem('partyFusionSession', JSON.stringify(session));
-  else localStorage.removeItem('partyFusionSession');
+  if (session)
+    localStorage.setItem("partyFusionSession", JSON.stringify(session));
+  else localStorage.removeItem("partyFusionSession");
 }
 
 async function createRoom(name) {
-  if (!name) throw new Error('Enter a display name first.');
-  const result = await api('/api/create-room', { name });
+  if (!name) throw new Error("Enter a display name first.");
+  const result = await api("/api/create-room", { name });
   saveSession(result);
   startPolling();
 }
 
 async function joinRoom(name, code) {
-  if (!name) throw new Error('Enter a display name first.');
-  if (!code) throw new Error('Enter a room code first.');
-  const result = await api('/api/join-room', { name, code });
+  if (!name) throw new Error("Enter a display name first.");
+  if (!code) throw new Error("Enter a room code first.");
+  const result = await api("/api/join-room", { name, code });
   saveSession(result);
   startPolling();
 }
@@ -121,13 +136,17 @@ async function refreshState() {
   }
 
   try {
-    renderConnection('Syncing...');
-    roomState = await api(`/api/state?roomCode=${encodeURIComponent(session.roomCode)}&playerId=${encodeURIComponent(session.playerId)}`, null, 'GET');
-    renderConnection('Connected');
+    renderConnection("Syncing...");
+    roomState = await api(
+      `/api/state?roomCode=${encodeURIComponent(session.roomCode)}&playerId=${encodeURIComponent(session.playerId)}`,
+      null,
+      "GET",
+    );
+    renderConnection("Connected");
     render();
   } catch (err) {
-    renderConnection('Disconnected');
-    showNotice(err.message, 'error');
+    renderConnection("Disconnected");
+    showNotice(err.message, "error");
     if (/Room not found|Player not in room/i.test(err.message)) {
       saveSession(null);
       roomState = null;
@@ -143,104 +162,124 @@ function startPolling() {
 }
 
 async function postWithSession(path, extra = {}) {
-  if (!session) throw new Error('Not connected to a room.');
-  await api(path, { roomCode: session.roomCode, playerId: session.playerId, ...extra });
+  if (!session) throw new Error("Not connected to a room.");
+  await api(path, {
+    roomCode: session.roomCode,
+    playerId: session.playerId,
+    ...extra,
+  });
   await refreshState();
 }
 
 async function saveLobbySettings() {
-  if (!session || !roomState || !isHost() || roomState.status !== 'lobby' || savingLobbySettings) return;
+  if (
+    !session ||
+    !roomState ||
+    !isHost() ||
+    roomState.status !== "lobby" ||
+    savingLobbySettings
+  )
+    return;
 
-  const nextMode = $('modeSelect').value;
-  const nextRounds = $('roundsInput').value;
+  const nextMode = $("modeSelect").value;
+  const nextRounds = $("roundsInput").value;
   pendingLobbySettings = { mode: nextMode, rounds: String(nextRounds) };
   savingLobbySettings = true;
 
   try {
-    await postWithSession('/api/save-settings', { mode: nextMode, rounds: nextRounds });
+    await postWithSession("/api/save-settings", {
+      mode: nextMode,
+      rounds: nextRounds,
+    });
     pendingLobbySettings = null;
   } finally {
     savingLobbySettings = false;
   }
 }
 
-$('createForm').addEventListener('submit', async (event) => {
+$("createForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
-    await createRoom($('createName').value.trim());
-    showNotice('Room created. Share the code and start when everyone is ready.', 'success');
+    await createRoom($("createName").value.trim());
+    showNotice(
+      "Room created. Share the code and start when everyone is ready.",
+      "success",
+    );
   } catch (err) {
     handleError(err);
   }
 });
 
-$('joinForm').addEventListener('submit', async (event) => {
+$("joinForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
-    await joinRoom($('joinName').value.trim(), $('joinCode').value.trim().toUpperCase());
-    showNotice('Joined room successfully.', 'success');
+    await joinRoom(
+      $("joinName").value.trim(),
+      $("joinCode").value.trim().toUpperCase(),
+    );
+    showNotice("Joined room successfully.", "success");
   } catch (err) {
     handleError(err);
   }
 });
 
-$('saveSettingsBtn').addEventListener('click', async () => {
+$("saveSettingsBtn").addEventListener("click", async () => {
   try {
     await saveLobbySettings();
-    showNotice('Lobby settings saved.', 'success');
+    showNotice("Lobby settings saved.", "success");
   } catch (err) {
     handleError(err);
   }
 });
 
-$('modeSelect').addEventListener('change', async () => {
+$("modeSelect").addEventListener("change", async () => {
   try {
     await saveLobbySettings();
-    showNotice('Game mode updated.', 'success');
+    showNotice("Game mode updated.", "success");
   } catch (err) {
     handleError(err);
   }
 });
 
-$('roundsInput').addEventListener('change', async () => {
+$("roundsInput").addEventListener("change", async () => {
   try {
     await saveLobbySettings();
-    showNotice('Round count updated.', 'success');
+    showNotice("Round count updated.", "success");
   } catch (err) {
     handleError(err);
   }
 });
 
-$('startBtn').addEventListener('click', async () => {
+$("startBtn").addEventListener("click", async () => {
   try {
-    await postWithSession('/api/start-game');
-    showNotice('Match started.', 'success');
+    await postWithSession("/api/start-game");
+    showNotice("Match started.", "success");
   } catch (err) {
     handleError(err);
   }
 });
 
-$('advanceBtn').addEventListener('click', async () => {
+$("advanceBtn").addEventListener("click", async () => {
   try {
-    await postWithSession('/api/advance-phase');
-    showNotice('Phase advanced.', 'success');
+    await postWithSession("/api/advance-phase");
+    showNotice("Phase advanced.", "success");
   } catch (err) {
     handleError(err);
   }
 });
 
-$('restartBtn').addEventListener('click', async () => {
+$("restartBtn").addEventListener("click", async () => {
   try {
-    await postWithSession('/api/return-to-lobby');
-    showNotice('Returned to lobby.', 'success');
+    await postWithSession("/api/return-to-lobby");
+    showNotice("Returned to lobby.", "success");
   } catch (err) {
     handleError(err);
   }
 });
 
-$('leaveBtn').addEventListener('click', async () => {
+$("leaveBtn").addEventListener("click", async () => {
   try {
-    if (session) await api('/api/leave-room', session);
+    if (session) await api("/api/leave-room", session);
   } catch (_) {}
 
   saveSession(null);
@@ -251,63 +290,117 @@ $('leaveBtn').addEventListener('click', async () => {
 });
 
 function render() {
-  $('authSection').classList.toggle('hidden', Boolean(roomState));
-  $('appSection').classList.toggle('hidden', !roomState);
+  $("authSection").classList.toggle("hidden", Boolean(roomState));
+  $("appSection").classList.toggle("hidden", !roomState);
   if (!roomState) return;
 
-  $('roomCode').textContent = roomState.code;
-  $('statusText').textContent = `${roomState.status.toUpperCase()} - ${modesMeta[roomState.mode]?.name || roomState.mode}${roomState.currentRound ? ` - Round ${roomState.currentRound}/${roomState.rounds}` : ''}`;
-  $('playerList').innerHTML = roomState.players.map((player) => `
+  $("roomCode").textContent = roomState.code;
+  $("statusText").textContent =
+    `${roomState.status.toUpperCase()} - ${modesMeta[roomState.mode]?.name || roomState.mode}${roomState.currentRound ? ` - Round ${roomState.currentRound}/${roomState.rounds}` : ""}`;
+  $("playerList").innerHTML = roomState.players
+    .map(
+      (player) => `
     <div class="player-pill">
       <div>
-        <div class="name">${escapeHtml(player.name)} ${player.id === roomState.selfId ? '- You' : ''}</div>
-        <div class="meta">${player.isHost ? 'Host' : 'Player'}</div>
+        <div class="name">${escapeHtml(player.name)} ${player.id === roomState.selfId ? "- You" : ""}</div>
+        <div class="meta">${player.isHost ? "Host" : "Player"}</div>
       </div>
       <div class="highlight">${player.score}</div>
     </div>
-  `).join('');
+  `,
+    )
+    .join("");
 
   populateModes();
   const displayedMode = pendingLobbySettings?.mode || roomState.mode;
-  const displayedRounds = pendingLobbySettings?.rounds || String(roomState.rounds);
-  $('modeSelect').value = displayedMode;
-  $('roundsInput').value = displayedRounds;
-  $('modeSelect').disabled = roomState.status !== 'lobby' || !isHost();
-  $('roundsInput').disabled = roomState.status !== 'lobby' || !isHost();
-  $('saveSettingsBtn').disabled = !isHost() || roomState.status !== 'lobby';
-  $('startBtn').disabled = !isHost() || roomState.status !== 'lobby';
-  $('advanceBtn').disabled = !isHost() || roomState.status === 'lobby' || roomState.phase === 'game_over';
-  $('restartBtn').disabled = !isHost();
-  $('hostCard').classList.toggle('hidden', !isHost());
-  $('modeSummary').innerHTML = roomState.summary ? `<strong>${escapeHtml(roomState.summary.name)}</strong><br>${escapeHtml(roomState.summary.summary)}` : '';
+  const displayedRounds =
+    pendingLobbySettings?.rounds || String(roomState.rounds);
+  $("modeSelect").value = displayedMode;
+  $("roundsInput").value = displayedRounds;
+  $("modeSelect").disabled = roomState.status !== "lobby" || !isHost();
+  $("roundsInput").disabled = roomState.status !== "lobby" || !isHost();
+  $("saveSettingsBtn").disabled = !isHost() || roomState.status !== "lobby";
+  $("startBtn").disabled = !isHost() || roomState.status !== "lobby";
+  $("advanceBtn").disabled =
+    !isHost() ||
+    roomState.status === "lobby" ||
+    roomState.phase === "game_over";
+  $("restartBtn").disabled = !isHost();
+  $("hostCard").classList.toggle("hidden", !isHost());
+  $("modeSummary").innerHTML = roomState.summary
+    ? `<strong>${escapeHtml(roomState.summary.name)}</strong><br>${escapeHtml(roomState.summary.summary)}`
+    : "";
 
-  $('banner').textContent = roomState.banner || '';
-  $('banner').classList.toggle('hidden', !roomState.banner);
+  $("banner").textContent = roomState.banner || "";
+  $("banner").classList.toggle("hidden", !roomState.banner);
 
-  const privateInfo = $('privateInfo');
+  const privateInfo = $("privateInfo");
   if (roomState.privateInfo && Object.keys(roomState.privateInfo).length) {
-    privateInfo.classList.remove('hidden');
-    privateInfo.innerHTML = `<h3>Your private info</h3><div class="kv-stack">${Object.entries(roomState.privateInfo).map(([key, value]) => `<div class="kv"><strong>${escapeHtml(toTitle(key))}</strong><div>${escapeHtml(value)}</div></div>`).join('')}</div>`;
+    privateInfo.classList.remove("hidden");
+    privateInfo.innerHTML = `<h3>Your private info</h3><div class="kv-stack">${Object.entries(
+      roomState.privateInfo,
+    )
+      .map(
+        ([key, value]) =>
+          `<div class="kv"><strong>${escapeHtml(toTitle(key))}</strong><div>${escapeHtml(value)}</div></div>`,
+      )
+      .join("")}</div>`;
   } else {
-    privateInfo.classList.add('hidden');
-    privateInfo.innerHTML = '';
+    privateInfo.classList.add("hidden");
+    privateInfo.innerHTML = "";
   }
 
-  $('gameArea').innerHTML = renderGameArea();
+  // Preserve input values
+  const inputValues = {};
+  [
+    "chatInput",
+    "sentenceInput",
+    "wordInput",
+    "voiceFallbackInput",
+    "mainText",
+  ].forEach((id) => {
+    const el = $(id);
+    if (el) inputValues[id] = el.value;
+  });
+
+  $("gameArea").innerHTML = renderGameArea();
   wireDynamicControls();
+
+  // Restore input values
+  Object.entries(inputValues).forEach(([id, value]) => {
+    const el = $(id);
+    if (el) {
+      if (value !== undefined) {
+        el.value = value;
+      } else {
+        if (id === "sentenceInput") {
+          el.value = roomState.game.currentSentence;
+        } else {
+          el.value = "";
+        }
+      }
+    }
+  });
 }
 
 function renderScoreboard() {
   const sorted = [...roomState.players].sort((a, b) => b.score - a.score);
-  return `<div class="card"><h3>Scoreboard</h3><div class="scoreboard">${sorted.map((player) => `<div class="score-row"><div>${escapeHtml(player.name)}</div><div class="highlight">${player.score}</div></div>`).join('')}</div></div>`;
+  return `<div class="card"><h3>Scoreboard</h3><div class="scoreboard">${sorted.map((player) => `<div class="score-row"><div>${escapeHtml(player.name)}</div><div class="highlight">${player.score}</div></div>`).join("")}</div></div>`;
 }
 
 function renderGameArea() {
-  if (roomState.status === 'lobby') {
-    return `<div class="card"><h2 class="phase-title">Choose a game mode</h2><p class="phase-subtitle">${isHost() ? 'Tap a card or use the selector. Changes save automatically while the room is in the lobby.' : 'The host chooses the mode for the room. All modes support 3-10 players.'}</p><div class="choice-grid">${Object.entries(modesMeta).map(([key, meta]) => `<button type="button" class="choice-card mode-card ${roomState.mode === key ? 'active' : ''}" data-action="select-mode" data-mode="${key}" ${!isHost() || roomState.status !== 'lobby' ? 'disabled' : ''}><strong>${escapeHtml(meta.name)}</strong><p class="small">${escapeHtml(meta.summary)}</p></button>`).join('')}</div></div>${renderScoreboard()}`;
+  if (roomState.status === "lobby") {
+    return `<div class="card"><h2 class="phase-title">Choose a game mode</h2><p class="phase-subtitle">${isHost() ? "Tap a card or use the selector. Changes save automatically while the room is in the lobby." : "The host chooses the mode for the room. All modes support 3-10 players."}</p><div class="choice-grid">${Object.entries(
+      modesMeta,
+    )
+      .map(
+        ([key, meta]) =>
+          `<button type="button" class="choice-card mode-card ${roomState.mode === key ? "active" : ""}" data-action="select-mode" data-mode="${key}" ${!isHost() || roomState.status !== "lobby" ? "disabled" : ""}><strong>${escapeHtml(meta.name)}</strong><p class="small">${escapeHtml(meta.summary)}</p></button>`,
+      )
+      .join("")}</div></div>${renderScoreboard()}`;
   }
 
-  if (roomState.phase === 'game_over' || roomState.status === 'finished') {
+  if (roomState.phase === "game_over" || roomState.status === "finished") {
     return `<div class="card"><h2 class="phase-title">Match complete</h2><p class="phase-subtitle">Use "Return to lobby" to start another mode.</p></div>${renderScoreboard()}`;
   }
 
@@ -321,7 +414,7 @@ function renderGameArea() {
     voice_swap: renderVoiceSwap,
     one_word_story_war: renderOneWordStoryWar,
     suspicious_one: renderSuspiciousOne,
-    memory_trap: renderMemoryTrap
+    memory_trap: renderMemoryTrap,
   };
 
   return `${renderers[roomState.mode] ? renderers[roomState.mode]() : '<div class="card">Unknown mode.</div>'}${renderScoreboard()}`;
@@ -329,236 +422,353 @@ function renderGameArea() {
 
 function renderLastMessage() {
   const game = roomState.game;
-  if (roomState.phase === 'writing') return `<div class="card"><h2 class="phase-title">Last Message</h2><div class="prompt-box">Write a short final message based on your private scenario.</div><p class="small">Submitted: ${game.submissionsCount}/${roomState.players.length}</p><form id="mainTextForm" class="stack"><textarea id="mainText" maxlength="180" placeholder="My last message to the group..."></textarea><button type="submit">Submit message</button></form></div>`;
-  if (roomState.phase === 'voting') return `<div class="card"><h2 class="phase-title">Vote for the odd prompt</h2><div class="entry-grid">${game.entries.map((entry) => `<div class="entry-card"><div>${escapeHtml(entry.text)}</div><div class="spacer-sm"></div><button data-action="vote-entry" data-entry="${entry.entryId}">Vote for this message</button></div>`).join('')}</div></div>`;
-  return `<div class="card"><h2 class="phase-title">Reveal</h2><p class="phase-subtitle">Odd player: <span class="highlight">${escapeHtml(playerName(game.reveal.oddPlayerId))}</span></p><div class="stack"><div class="prompt-box"><strong>Normal prompt:</strong> ${escapeHtml(game.reveal.normalPrompt)}</div><div class="prompt-box"><strong>Odd prompt:</strong> ${escapeHtml(game.reveal.oddPrompt)}</div>${game.reveal.entries.map((entry) => `<div class="message-card ${entry.playerId === game.reveal.oddPlayerId ? 'active' : ''}"><strong>${escapeHtml(entry.playerName)}</strong><div>${escapeHtml(entry.text)}</div></div>`).join('')}</div></div>`;
+  if (roomState.phase === "writing")
+    return `<div class="card"><h2 class="phase-title">Last Message</h2><div class="prompt-box">Write a short final message based on your private scenario.</div><p class="small">Submitted: ${game.submissionsCount}/${roomState.players.length}</p><form id="mainTextForm" class="stack"><textarea id="mainText" maxlength="180" placeholder="My last message to the group..."></textarea><button type="submit">Submit message</button></form></div>`;
+  if (roomState.phase === "voting")
+    return `<div class="card"><h2 class="phase-title">Vote for the odd prompt</h2><div class="entry-grid">${game.entries.map((entry) => `<div class="entry-card"><div>${escapeHtml(entry.text)}</div><div class="spacer-sm"></div><button data-action="vote-entry" data-entry="${entry.entryId}">Vote for this message</button></div>`).join("")}</div></div>`;
+  return `<div class="card"><h2 class="phase-title">Reveal</h2><p class="phase-subtitle">Odd player: <span class="highlight">${escapeHtml(playerName(game.reveal.oddPlayerId))}</span></p><div class="stack"><div class="prompt-box"><strong>Normal prompt:</strong> ${escapeHtml(game.reveal.normalPrompt)}</div><div class="prompt-box"><strong>Odd prompt:</strong> ${escapeHtml(game.reveal.oddPrompt)}</div>${game.reveal.entries.map((entry) => `<div class="message-card ${entry.playerId === game.reveal.oddPlayerId ? "active" : ""}"><strong>${escapeHtml(entry.playerName)}</strong><div>${escapeHtml(entry.text)}</div></div>`).join("")}</div></div>`;
 }
 
 function renderRuleBreaker() {
   const game = roomState.game;
-  const answerBlocks = game.answersByPrompt.map((block) => `<div class="card"><strong>${escapeHtml(block.label)}</strong><div class="stack spaced-top">${block.answers.map((answer) => `<div class="message-card"><strong>${escapeHtml(answer.playerName)}:</strong> ${escapeHtml(answer.text)}</div>`).join('')}</div></div>`).join('');
-  if (roomState.phase === 'prompting') return `<div class="card"><h2 class="phase-title">Rule Breaker</h2><div class="prompt-box">Prompt ${game.promptIndex + 1}/${game.promptTotal}: ${escapeHtml(game.prompt)}</div>${answerBlocks || ''}<form id="mainTextForm" class="stack"><textarea id="mainText" maxlength="160" placeholder="Type your answer..."></textarea><button type="submit">Submit answer</button></form></div>`;
-  if (roomState.phase === 'outsider_guess') return `<div class="card"><h2 class="phase-title">Outsider guess</h2>${answerBlocks}${game.options.length ? `<div class="choice-grid">${game.options.map((option) => `<div class="choice-card"><div>${escapeHtml(option)}</div><button data-action="guess-rule" data-value="${escapeHtml(option)}">Choose this rule</button></div>`).join('')}</div>` : '<p class="small">Waiting for the outsider to guess the hidden rule.</p>'}</div>`;
-  if (roomState.phase === 'voting') return `<div class="card"><h2 class="phase-title">Vote for the outsider</h2>${answerBlocks}<div class="choice-grid">${roomState.players.filter((player) => player.id !== roomState.selfId).map((player) => `<div class="choice-card"><strong>${escapeHtml(player.name)}</strong><button data-action="vote-player" data-player="${player.id}">Vote ${escapeHtml(player.name)}</button></div>`).join('')}</div></div>`;
-  return `<div class="card"><h2 class="phase-title">Reveal</h2><p><strong>Outsider:</strong> ${escapeHtml(playerName(game.outsiderId))}</p><p><strong>Hidden rule:</strong> ${escapeHtml(game.rule)}</p><p><strong>Outsider guess:</strong> ${escapeHtml(game.outsiderGuess || 'No guess')} ${game.outsiderGuessCorrect ? 'Correct' : 'Wrong'}</p>${answerBlocks}</div>`;
+  const answerBlocks = game.answersByPrompt
+    .map(
+      (block) =>
+        `<div class="card"><strong>${escapeHtml(block.label)}</strong><div class="stack spaced-top">${block.answers.map((answer) => `<div class="message-card"><strong>${escapeHtml(answer.playerName)}:</strong> ${escapeHtml(answer.text)}</div>`).join("")}</div></div>`,
+    )
+    .join("");
+  if (roomState.phase === "prompting")
+    return `<div class="card"><h2 class="phase-title">Rule Breaker</h2><div class="prompt-box">Prompt ${game.promptIndex + 1}/${game.promptTotal}: ${escapeHtml(game.prompt)}</div>${answerBlocks || ""}<form id="mainTextForm" class="stack"><textarea id="mainText" maxlength="160" placeholder="Type your answer..."></textarea><button type="submit">Submit answer</button></form></div>`;
+  if (roomState.phase === "outsider_guess")
+    return `<div class="card"><h2 class="phase-title">Outsider guess</h2>${answerBlocks}${game.options.length ? `<div class="choice-grid">${game.options.map((option) => `<div class="choice-card"><div>${escapeHtml(option)}</div><button data-action="guess-rule" data-value="${escapeHtml(option)}">Choose this rule</button></div>`).join("")}</div>` : '<p class="small">Waiting for the outsider to guess the hidden rule.</p>'}</div>`;
+  if (roomState.phase === "voting")
+    return `<div class="card"><h2 class="phase-title">Vote for the outsider</h2>${answerBlocks}<div class="choice-grid">${roomState.players
+      .filter((player) => player.id !== roomState.selfId)
+      .map(
+        (player) =>
+          `<div class="choice-card"><strong>${escapeHtml(player.name)}</strong><button data-action="vote-player" data-player="${player.id}">Vote ${escapeHtml(player.name)}</button></div>`,
+      )
+      .join("")}</div></div>`;
+  return `<div class="card"><h2 class="phase-title">Reveal</h2><p><strong>Outsider:</strong> ${escapeHtml(playerName(game.outsiderId))}</p><p><strong>Hidden rule:</strong> ${escapeHtml(game.rule)}</p><p><strong>Outsider guess:</strong> ${escapeHtml(game.outsiderGuess || "No guess")} ${game.outsiderGuessCorrect ? "Correct" : "Wrong"}</p>${answerBlocks}</div>`;
 }
 
 function renderFakeInternet() {
   const game = roomState.game;
-  if (roomState.phase === 'writing') return `<div class="card"><h2 class="phase-title">Fake Internet</h2><div class="prompt-box">Category: ${escapeHtml(game.category)}</div><p class="small">Submitted: ${game.submissionsCount}/${roomState.players.length}</p><form id="mainTextForm" class="stack"><textarea id="mainText" maxlength="180" placeholder="Write something that looks convincingly real..."></textarea><button type="submit">Submit fake post</button></form></div>`;
-  if (roomState.phase === 'voting') return `<div class="card"><h2 class="phase-title">Pick the real post</h2><div class="entry-grid">${game.entries.map((entry) => `<div class="entry-card"><div>${escapeHtml(entry.text)}</div><div class="spacer-sm"></div><button data-action="vote-entry" data-entry="${entry.entryId}">Vote real</button></div>`).join('')}</div></div>`;
-  return `<div class="card"><h2 class="phase-title">Reveal</h2><div class="stack">${game.reveal.map((entry) => `<div class="message-card ${entry.isReal ? 'active' : ''}"><strong>${escapeHtml(entry.playerName)}</strong> ${entry.isReal ? '<span class="vote-badge">REAL</span>' : ''}<div>${escapeHtml(entry.text)}</div></div>`).join('')}</div></div>`;
+  if (roomState.phase === "writing")
+    return `<div class="card"><h2 class="phase-title">Fake Internet</h2><div class="prompt-box">Category: ${escapeHtml(game.category)}</div><p class="small">Submitted: ${game.submissionsCount}/${roomState.players.length}</p><form id="mainTextForm" class="stack"><textarea id="mainText" maxlength="180" placeholder="Write something that looks convincingly real..."></textarea><button type="submit">Submit fake post</button></form></div>`;
+  if (roomState.phase === "voting")
+    return `<div class="card"><h2 class="phase-title">Pick the real post</h2><div class="entry-grid">${game.entries.map((entry) => `<div class="entry-card"><div>${escapeHtml(entry.text)}</div><div class="spacer-sm"></div><button data-action="vote-entry" data-entry="${entry.entryId}">Vote real</button></div>`).join("")}</div></div>`;
+  return `<div class="card"><h2 class="phase-title">Reveal</h2><div class="stack">${game.reveal.map((entry) => `<div class="message-card ${entry.isReal ? "active" : ""}"><strong>${escapeHtml(entry.playerName)}</strong> ${entry.isReal ? '<span class="vote-badge">REAL</span>' : ""}<div>${escapeHtml(entry.text)}</div></div>`).join("")}</div></div>`;
 }
 
 function renderChainReaction() {
   const game = roomState.game;
-  const history = game.history.map((item) => `<div class="history-card"><strong>${escapeHtml(item.playerName)}</strong><div class="small">Changed: ${escapeHtml(item.changedWord)}</div><div>${escapeHtml(item.before)}</div><div class="highlight">-> ${escapeHtml(item.after)}</div>${roomState.phase === 'voting' ? `<button data-action="vote-entry" data-entry="${item.entryId}">Vote this change</button>` : ''}</div>`).join('');
-  if (roomState.phase === 'editing') {
+  const history = game.history
+    .map(
+      (item) =>
+        `<div class="history-card"><strong>${escapeHtml(item.playerName)}</strong><div class="small">Changed: ${escapeHtml(item.changedWord)}</div><div>${escapeHtml(item.before)}</div><div class="highlight">-> ${escapeHtml(item.after)}</div>${roomState.phase === "voting" ? `<button data-action="vote-entry" data-entry="${item.entryId}">Vote this change</button>` : ""}</div>`,
+    )
+    .join("");
+  if (roomState.phase === "editing") {
     const yourTurn = game.turnPlayerId === roomState.selfId;
-    return `<div class="card"><h2 class="phase-title">Chain Reaction</h2><div class="prompt-box"><strong>Current sentence:</strong> ${escapeHtml(game.currentSentence)}</div><p class="small">Change exactly one word. Same number of words only.</p>${yourTurn ? `<form id="sentenceForm" class="stack"><textarea id="sentenceInput">${escapeHtml(game.currentSentence)}</textarea><button type="submit">Submit new sentence</button></form>` : `<p class="small">Waiting for ${escapeHtml(playerName(game.turnPlayerId))}.</p>`}</div><div class="card"><h3>History</h3><div class="stack">${history || '<div class="small">No edits yet.</div>'}</div></div>`;
+    return `<div class="card"><h2 class="phase-title">Chain Reaction</h2><div class="prompt-box"><strong>Current sentence:</strong> ${escapeHtml(game.currentSentence)}</div><p class="small">Change exactly one word. Same number of words only.</p>${yourTurn ? `<form id="sentenceForm" class="stack"><textarea id="sentenceInput"></textarea><button type="submit">Submit new sentence</button></form>` : `<p class="small">Waiting for ${escapeHtml(playerName(game.turnPlayerId))}.</p>`}</div><div class="card"><h3>History</h3><div class="stack">${history || '<div class="small">No edits yet.</div>'}</div></div>`;
   }
   return `<div class="card"><h2 class="phase-title">Sentence history</h2><div class="prompt-box"><strong>Final sentence:</strong> ${escapeHtml(game.currentSentence)}</div><div class="stack">${history || '<div class="small">No edits recorded.</div>'}</div></div>`;
 }
 
 function renderSecretObjective() {
   const game = roomState.game;
-  const chatHtml = game.chat.length ? game.chat.map((message) => `<div class="message-card"><strong>${escapeHtml(message.playerName)}:</strong> ${escapeHtml(message.text)}</div>`).join('') : '<div class="small">No messages yet.</div>';
-  if (roomState.phase === 'interaction') return `<div class="card"><h2 class="phase-title">Secret Objective</h2><div class="prompt-box">Conversation starter: ${escapeHtml(game.prompt)}</div><div class="stack">${chatHtml}</div><form id="chatForm" class="stack spaced-top"><input id="chatInput" maxlength="160" placeholder="Send a message into the round..." /><button type="submit">Send message</button></form></div>`;
-  if (roomState.phase === 'guessing') return `<div class="card"><h2 class="phase-title">Guess one objective</h2><div class="stack">${chatHtml}</div><form id="secretGuessForm" class="stack spaced-top"><label>Target player<select id="targetSelect">${roomState.players.filter((player) => player.id !== roomState.selfId).map((player) => `<option value="${player.id}">${escapeHtml(player.name)}</option>`).join('')}</select></label><label>Objective guess<select id="objectiveSelect">${game.objectives.map((objective) => `<option value="${escapeHtml(objective)}">${escapeHtml(objective)}</option>`).join('')}</select></label><label class="check-row"><input id="completedCheck" type="checkbox" /> <span>I completed my secret objective</span></label><button type="submit">Submit guess</button></form></div>`;
-  return `<div class="card"><h2 class="phase-title">Reveal</h2><div class="stack">${game.assignments.map((item) => `<div class="message-card"><strong>${escapeHtml(item.playerName)}</strong><div>${escapeHtml(item.objective)}</div><div class="small">Claimed complete: ${game.completionClaims[item.playerId] ? 'Yes' : 'No'}</div></div>`).join('')}</div></div>`;
+  const chatHtml = game.chat.length
+    ? game.chat
+        .map(
+          (message) =>
+            `<div class="message-card"><strong>${escapeHtml(message.playerName)}:</strong> ${escapeHtml(message.text)}</div>`,
+        )
+        .join("")
+    : '<div class="small">No messages yet.</div>';
+  if (roomState.phase === "interaction")
+    return `<div class="card"><h2 class="phase-title">Secret Objective</h2><div class="prompt-box">Conversation starter: ${escapeHtml(game.prompt)}</div><div class="stack">${chatHtml}</div><form id="chatForm" class="stack spaced-top"><input id="chatInput" maxlength="160" placeholder="Send a message into the round..." /><button type="submit">Send message</button></form></div>`;
+  if (roomState.phase === "guessing")
+    return `<div class="card"><h2 class="phase-title">Guess one objective</h2><div class="stack">${chatHtml}</div><form id="secretGuessForm" class="stack spaced-top"><label>Target player<select id="targetSelect">${roomState.players
+      .filter((player) => player.id !== roomState.selfId)
+      .map(
+        (player) =>
+          `<option value="${player.id}">${escapeHtml(player.name)}</option>`,
+      )
+      .join(
+        "",
+      )}</select></label><label>Objective guess<select id="objectiveSelect">${game.objectives.map((objective) => `<option value="${escapeHtml(objective)}">${escapeHtml(objective)}</option>`).join("")}</select></label><label class="check-row"><input id="completedCheck" type="checkbox" /> <span>I completed my secret objective</span></label><button type="submit">Submit guess</button></form></div>`;
+  return `<div class="card"><h2 class="phase-title">Reveal</h2><div class="stack">${game.assignments.map((item) => `<div class="message-card"><strong>${escapeHtml(item.playerName)}</strong><div>${escapeHtml(item.objective)}</div><div class="small">Claimed complete: ${game.completionClaims[item.playerId] ? "Yes" : "No"}</div></div>`).join("")}</div></div>`;
 }
 
 function renderSpeedLies() {
   const game = roomState.game;
-  if (roomState.phase === 'answering') return `<div class="card"><h2 class="phase-title">Speed Lies</h2><div class="prompt-box">${escapeHtml(game.prompt)}</div><p class="small">Your assignment is visible in your private info. Answer fast.</p><form id="mainTextForm" class="stack"><textarea id="mainText" maxlength="160" placeholder="Type your answer..."></textarea><button type="submit">Submit answer</button></form></div>`;
-  return `<div class="card"><h2 class="phase-title">Speed Lies</h2><div class="prompt-box">${escapeHtml(game.prompt)}</div><div class="choice-grid">${game.answers.map((answer) => `<div class="choice-card"><strong>${escapeHtml(answer.playerName)}</strong><div>${escapeHtml(answer.text)}</div>${roomState.phase === 'voting' ? `<button data-action="vote-player" data-player="${answer.playerId}">Vote liar</button>` : `<div class="small">Role: ${escapeHtml(answer.role || 'Hidden')}</div>`}</div>`).join('')}</div></div>`;
+  if (roomState.phase === "answering")
+    return `<div class="card"><h2 class="phase-title">Speed Lies</h2><div class="prompt-box">${escapeHtml(game.prompt)}</div><p class="small">Your assignment is visible in your private info. Answer fast.</p><form id="mainTextForm" class="stack"><textarea id="mainText" maxlength="160" placeholder="Type your answer..."></textarea><button type="submit">Submit answer</button></form></div>`;
+  return `<div class="card"><h2 class="phase-title">Speed Lies</h2><div class="prompt-box">${escapeHtml(game.prompt)}</div><div class="choice-grid">${game.answers.map((answer) => `<div class="choice-card"><strong>${escapeHtml(answer.playerName)}</strong><div>${escapeHtml(answer.text)}</div>${roomState.phase === "voting" ? `<button data-action="vote-player" data-player="${answer.playerId}">Vote liar</button>` : `<div class="small">Role: ${escapeHtml(answer.role || "Hidden")}</div>`}</div>`).join("")}</div></div>`;
 }
 
 function renderClip(clip) {
   if (!clip) return '<div class="small">No clip submitted.</div>';
-  if (clip.kind === 'text') return `<div class="message-card"><strong>Text fallback:</strong> ${escapeHtml(clip.text)}</div>`;
+  if (clip.kind === "text")
+    return `<div class="message-card"><strong>Text fallback:</strong> ${escapeHtml(clip.text)}</div>`;
   return `<audio controls src="${clip.dataUrl}"></audio>`;
 }
 
 function renderVoiceSwap() {
   const game = roomState.game;
-  if (roomState.phase === 'recording') return `<div class="card"><h2 class="phase-title">Voice Swap</h2><div class="prompt-box">${escapeHtml(game.prompt)}</div><p class="small">Recorded clips: ${game.recordingsCount}/${roomState.players.length}</p><div class="button-row wrap"><button data-action="start-recording" ${mediaRecorder && mediaRecorder.state === 'recording' ? 'disabled' : ''}>Start recording</button><button class="secondary" data-action="stop-recording" ${!(mediaRecorder && mediaRecorder.state === 'recording') ? 'disabled' : ''}>Stop recording</button></div><div class="spacer-sm"></div><div class="card"><h3>Your draft clip</h3>${voiceDraft ? renderClip(voiceDraft) : '<div class="small">No draft clip yet.</div>'}<div class="spacer-sm"></div><div class="button-row wrap"><button data-action="submit-recording" ${voiceDraft ? '' : 'disabled'}>Submit recorded clip</button><button class="secondary" data-action="clear-recording" ${voiceDraft ? '' : 'disabled'}>Discard draft</button></div></div><div class="spacer-sm"></div><form id="voiceFallbackForm" class="stack"><input id="voiceFallbackInput" maxlength="120" placeholder="Microphone not working? Type a text fallback." /><button type="submit">Submit text fallback</button></form></div>`;
-  if (roomState.phase === 'guessing') return `<div class="card"><h2 class="phase-title">Guess one identity</h2><div class="entry-grid">${game.entries.map((entry) => `<div class="audio-card"><div class="vote-badge">Clip ${escapeHtml(entry.entryId)}</div><div class="spacer-xs"></div>${renderClip(entry.clip)}<div class="spacer-xs"></div><label>Who do you think this is?<select data-guess-entry="${entry.entryId}" class="voiceGuessSelect">${roomState.players.map((player) => `<option value="${player.id}">${escapeHtml(player.name)}</option>`).join('')}</select></label><button data-action="submit-voice-guess" data-entry="${entry.entryId}">Submit guess</button></div>`).join('')}</div></div>`;
-  return `<div class="card"><h2 class="phase-title">Reveal</h2><div class="entry-grid">${game.entries.map((entry) => `<div class="audio-card"><strong>${escapeHtml(entry.playerName || 'Unknown')}</strong><div class="spacer-xs"></div>${renderClip(entry.clip)}</div>`).join('')}</div></div>`;
+  if (roomState.phase === "recording")
+    return `<div class="card"><h2 class="phase-title">Voice Swap</h2><div class="prompt-box">${escapeHtml(game.prompt)}</div><p class="small">Recorded clips: ${game.recordingsCount}/${roomState.players.length}</p><div class="button-row wrap"><button data-action="start-recording" ${mediaRecorder && mediaRecorder.state === "recording" ? "disabled" : ""}>Start recording</button><button class="secondary" data-action="stop-recording" ${!(mediaRecorder && mediaRecorder.state === "recording") ? "disabled" : ""}>Stop recording</button></div><div class="spacer-sm"></div><div class="card"><h3>Your draft clip</h3>${voiceDraft ? renderClip(voiceDraft) : '<div class="small">No draft clip yet.</div>'}<div class="spacer-sm"></div><div class="button-row wrap"><button data-action="submit-recording" ${voiceDraft ? "" : "disabled"}>Submit recorded clip</button><button class="secondary" data-action="clear-recording" ${voiceDraft ? "" : "disabled"}>Discard draft</button></div></div><div class="spacer-sm"></div><form id="voiceFallbackForm" class="stack"><input id="voiceFallbackInput" maxlength="120" placeholder="Microphone not working? Type a text fallback." /><button type="submit">Submit text fallback</button></form></div>`;
+  if (roomState.phase === "guessing")
+    return `<div class="card"><h2 class="phase-title">Guess one identity</h2><div class="entry-grid">${game.entries.map((entry) => `<div class="audio-card"><div class="vote-badge">Clip ${escapeHtml(entry.entryId)}</div><div class="spacer-xs"></div>${renderClip(entry.clip)}<div class="spacer-xs"></div><label>Who do you think this is?<select data-guess-entry="${entry.entryId}" class="voiceGuessSelect">${roomState.players.map((player) => `<option value="${player.id}">${escapeHtml(player.name)}</option>`).join("")}</select></label><button data-action="submit-voice-guess" data-entry="${entry.entryId}">Submit guess</button></div>`).join("")}</div></div>`;
+  return `<div class="card"><h2 class="phase-title">Reveal</h2><div class="entry-grid">${game.entries.map((entry) => `<div class="audio-card"><strong>${escapeHtml(entry.playerName || "Unknown")}</strong><div class="spacer-xs"></div>${renderClip(entry.clip)}</div>`).join("")}</div></div>`;
 }
 
 function renderOneWordStoryWar() {
   const game = roomState.game;
-  if (roomState.phase === 'editing') {
+  if (roomState.phase === "editing") {
     const yourTurn = game.turnPlayerId === roomState.selfId;
-    return `<div class="card"><h2 class="phase-title">One Word Story War</h2><div class="story-view">${escapeHtml(game.story)}</div><p class="small">Add one word only.</p>${yourTurn ? `<form id="wordForm" class="stack"><input id="wordInput" maxlength="24" placeholder="One word" /><button type="submit">Add word</button></form>` : `<p class="small">Waiting for ${escapeHtml(playerName(game.turnPlayerId))}.</p>`}</div><div class="card"><h3>Contributions</h3><div class="inline-list">${game.additions.map((item) => `<span class="tag">${escapeHtml(item.playerName)}: ${escapeHtml(item.word)}</span>`).join('') || '<span class="small">No words added yet.</span>'}</div></div>`;
+    return `<div class="card"><h2 class="phase-title">One Word Story War</h2><div class="story-view">${escapeHtml(game.story)}</div><p class="small">Add one word only.</p>${yourTurn ? `<form id="wordForm" class="stack"><input id="wordInput" maxlength="24" placeholder="One word" /><button type="submit">Add word</button></form>` : `<p class="small">Waiting for ${escapeHtml(playerName(game.turnPlayerId))}.</p>`}</div><div class="card"><h3>Contributions</h3><div class="inline-list">${game.additions.map((item) => `<span class="tag">${escapeHtml(item.playerName)}: ${escapeHtml(item.word)}</span>`).join("") || '<span class="small">No words added yet.</span>'}</div></div>`;
   }
-  if (roomState.phase === 'voting') return `<div class="card"><h2 class="phase-title">Vote for the best contributor</h2><div class="story-view">${escapeHtml(game.story)}</div><div class="choice-grid spaced-top">${roomState.players.filter((player) => player.id !== roomState.selfId).map((player) => `<div class="choice-card"><strong>${escapeHtml(player.name)}</strong><div class="small">Words: ${game.additions.filter((item) => item.playerName === player.name).map((item) => escapeHtml(item.word)).join(', ') || '-'}</div><button data-action="vote-player" data-player="${player.id}">Vote ${escapeHtml(player.name)}</button></div>`).join('')}</div></div>`;
-  return `<div class="card"><h2 class="phase-title">Reveal</h2><div class="story-view">${escapeHtml(game.story)}</div><div class="stack spaced-top">${game.roles.map((item) => `<div class="message-card"><strong>${escapeHtml(item.playerName)}</strong><div>${escapeHtml(item.role)}</div></div>`).join('')}</div></div>`;
+  if (roomState.phase === "voting")
+    return `<div class="card"><h2 class="phase-title">Vote for the best contributor</h2><div class="story-view">${escapeHtml(game.story)}</div><div class="choice-grid spaced-top">${roomState.players
+      .filter((player) => player.id !== roomState.selfId)
+      .map(
+        (player) =>
+          `<div class="choice-card"><strong>${escapeHtml(player.name)}</strong><div class="small">Words: ${
+            game.additions
+              .filter((item) => item.playerName === player.name)
+              .map((item) => escapeHtml(item.word))
+              .join(", ") || "-"
+          }</div><button data-action="vote-player" data-player="${player.id}">Vote ${escapeHtml(player.name)}</button></div>`,
+      )
+      .join("")}</div></div>`;
+  return `<div class="card"><h2 class="phase-title">Reveal</h2><div class="story-view">${escapeHtml(game.story)}</div><div class="stack spaced-top">${game.roles.map((item) => `<div class="message-card"><strong>${escapeHtml(item.playerName)}</strong><div>${escapeHtml(item.role)}</div></div>`).join("")}</div></div>`;
 }
 
 function renderSuspiciousOne() {
   const game = roomState.game;
-  if (roomState.phase === 'writing') return `<div class="card"><h2 class="phase-title">The Suspicious One</h2><div class="prompt-box">Use your private prompt/instruction to craft an answer.</div><p class="small">Submitted: ${game.submissionsCount}/${roomState.players.length}</p><form id="mainTextForm" class="stack"><textarea id="mainText" maxlength="180" placeholder="Type your answer..."></textarea><button type="submit">Submit answer</button></form></div>`;
-  if (roomState.phase === 'voting') return `<div class="card"><h2 class="phase-title">Vote for the suspicious answer</h2><div class="entry-grid">${game.entries.map((entry) => `<div class="entry-card"><div>${escapeHtml(entry.text)}</div><div class="spacer-sm"></div><button data-action="vote-entry" data-entry="${entry.entryId}">Vote this answer</button></div>`).join('')}</div></div>`;
-  return `<div class="card"><h2 class="phase-title">Reveal</h2><div class="prompt-box"><strong>Base prompt:</strong> ${escapeHtml(game.reveal.base)}</div><div class="prompt-box"><strong>Suspicious prompt:</strong> ${escapeHtml(game.reveal.suspicious)}</div><p><strong>Suspicious player:</strong> ${escapeHtml(playerName(game.reveal.suspiciousId))}</p><div class="stack">${game.reveal.entries.map((entry) => `<div class="message-card ${entry.playerId === game.reveal.suspiciousId ? 'active' : ''}"><strong>${escapeHtml(entry.playerName)}</strong><div>${escapeHtml(entry.text)}</div></div>`).join('')}</div></div>`;
+  if (roomState.phase === "writing")
+    return `<div class="card"><h2 class="phase-title">The Suspicious One</h2><div class="prompt-box">Use your private prompt/instruction to craft an answer.</div><p class="small">Submitted: ${game.submissionsCount}/${roomState.players.length}</p><form id="mainTextForm" class="stack"><textarea id="mainText" maxlength="180" placeholder="Type your answer..."></textarea><button type="submit">Submit answer</button></form></div>`;
+  if (roomState.phase === "voting")
+    return `<div class="card"><h2 class="phase-title">Vote for the suspicious answer</h2><div class="entry-grid">${game.entries.map((entry) => `<div class="entry-card"><div>${escapeHtml(entry.text)}</div><div class="spacer-sm"></div><button data-action="vote-entry" data-entry="${entry.entryId}">Vote this answer</button></div>`).join("")}</div></div>`;
+  return `<div class="card"><h2 class="phase-title">Reveal</h2><div class="prompt-box"><strong>Base prompt:</strong> ${escapeHtml(game.reveal.base)}</div><div class="prompt-box"><strong>Suspicious prompt:</strong> ${escapeHtml(game.reveal.suspicious)}</div><p><strong>Suspicious player:</strong> ${escapeHtml(playerName(game.reveal.suspiciousId))}</p><div class="stack">${game.reveal.entries.map((entry) => `<div class="message-card ${entry.playerId === game.reveal.suspiciousId ? "active" : ""}"><strong>${escapeHtml(entry.playerName)}</strong><div>${escapeHtml(entry.text)}</div></div>`).join("")}</div></div>`;
 }
 
 function renderMemoryTrap() {
   const game = roomState.game;
-  if (roomState.phase === 'collecting') return `<div class="card"><h2 class="phase-title">Memory Trap</h2><div class="prompt-box">Prompt ${game.currentPromptIndex + 1}/${game.prompts.length}: ${escapeHtml(game.prompts[game.currentPromptIndex])}</div><p class="small">Players who have answered at least one memory: ${game.answersCount}/${roomState.players.length}</p><form id="mainTextForm" class="stack"><input id="mainText" maxlength="80" placeholder="Type your memory answer..." /><button type="submit">Submit memory</button></form></div>`;
-  return `<div class="card"><h2 class="phase-title">Memory Trap</h2><div class="entry-grid">${game.trapCards.map((card) => `<div class="entry-card ${card.cardId === game.alteredCardId ? 'active' : ''}"><div>${escapeHtml(card.text)}</div>${roomState.phase === 'voting' ? `<button data-action="vote-card" data-card="${card.cardId}">Vote fake memory</button>` : ''}${roomState.phase === 'reveal' && card.cardId === game.alteredCardId ? '<div class="vote-badge">Altered</div>' : ''}</div>`).join('')}</div></div>`;
+  if (roomState.phase === "collecting")
+    return `<div class="card"><h2 class="phase-title">Memory Trap</h2><div class="prompt-box">Prompt ${game.currentPromptIndex + 1}/${game.prompts.length}: ${escapeHtml(game.prompts[game.currentPromptIndex])}</div><p class="small">Players who have answered at least one memory: ${game.answersCount}/${roomState.players.length}</p><form id="mainTextForm" class="stack"><input id="mainText" maxlength="80" placeholder="Type your memory answer..." /><button type="submit">Submit memory</button></form></div>`;
+  return `<div class="card"><h2 class="phase-title">Memory Trap</h2><div class="entry-grid">${game.trapCards.map((card) => `<div class="entry-card ${card.cardId === game.alteredCardId ? "active" : ""}"><div>${escapeHtml(card.text)}</div>${roomState.phase === "voting" ? `<button data-action="vote-card" data-card="${card.cardId}">Vote fake memory</button>` : ""}${roomState.phase === "reveal" && card.cardId === game.alteredCardId ? '<div class="vote-badge">Altered</div>' : ""}</div>`).join("")}</div></div>`;
 }
 
 function wireDynamicControls() {
-  const mainTextForm = $('mainTextForm');
-  if (mainTextForm) mainTextForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    try {
-      await postWithSession('/api/player-action', { payload: { type: 'submitText', value: $('mainText').value } });
-      $('mainText').value = '';
-    } catch (err) {
-      handleError(err);
-    }
-  });
+  const mainTextForm = $("mainTextForm");
+  if (mainTextForm)
+    mainTextForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        await postWithSession("/api/player-action", {
+          payload: { type: "submitText", value: $("mainText").value },
+        });
+        $("mainText").value = "";
+      } catch (err) {
+        handleError(err);
+      }
+    });
 
-  const chatForm = $('chatForm');
-  if (chatForm) chatForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    try {
-      await postWithSession('/api/player-action', { payload: { type: 'chat', value: $('chatInput').value } });
-      $('chatInput').value = '';
-    } catch (err) {
-      handleError(err);
-    }
-  });
+  const chatForm = $("chatForm");
+  if (chatForm)
+    chatForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        await postWithSession("/api/player-action", {
+          payload: { type: "chat", value: $("chatInput").value },
+        });
+        $("chatInput").value = "";
+      } catch (err) {
+        handleError(err);
+      }
+    });
 
-  const secretGuessForm = $('secretGuessForm');
-  if (secretGuessForm) secretGuessForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    try {
-      await postWithSession('/api/player-action', {
-        payload: {
-          type: 'submitSecretGuess',
-          targetId: $('targetSelect').value,
-          objective: $('objectiveSelect').value,
-          completed: $('completedCheck').checked
+  const secretGuessForm = $("secretGuessForm");
+  if (secretGuessForm)
+    secretGuessForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        await postWithSession("/api/player-action", {
+          payload: {
+            type: "submitSecretGuess",
+            targetId: $("targetSelect").value,
+            objective: $("objectiveSelect").value,
+            completed: $("completedCheck").checked,
+          },
+        });
+      } catch (err) {
+        handleError(err);
+      }
+    });
+
+  const sentenceForm = $("sentenceForm");
+  if (sentenceForm)
+    sentenceForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        await postWithSession("/api/player-action", {
+          payload: { type: "submitSentence", value: $("sentenceInput").value },
+        });
+      } catch (err) {
+        handleError(err);
+      }
+    });
+
+  const wordForm = $("wordForm");
+  if (wordForm)
+    wordForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        await postWithSession("/api/player-action", {
+          payload: { type: "submitWord", value: $("wordInput").value },
+        });
+        $("wordInput").value = "";
+      } catch (err) {
+        handleError(err);
+      }
+    });
+
+  const voiceFallbackForm = $("voiceFallbackForm");
+  if (voiceFallbackForm)
+    voiceFallbackForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        await postWithSession("/api/player-action", {
+          payload: {
+            type: "submitAudio",
+            clip: { kind: "text", text: $("voiceFallbackInput").value.trim() },
+          },
+        });
+        $("voiceFallbackInput").value = "";
+      } catch (err) {
+        handleError(err);
+      }
+    });
+
+  document.querySelectorAll('[data-action="select-mode"]').forEach((button) =>
+    button.addEventListener("click", async () => {
+      if (!isHost() || roomState?.status !== "lobby") return;
+      $("modeSelect").value = button.dataset.mode;
+      try {
+        await saveLobbySettings();
+        showNotice(
+          `${modesMeta[button.dataset.mode]?.name || "Mode"} selected.`,
+          "success",
+        );
+      } catch (err) {
+        handleError(err);
+      }
+    }),
+  );
+
+  document.querySelectorAll('[data-action="vote-entry"]').forEach((button) =>
+    button.addEventListener("click", async () => {
+      try {
+        await postWithSession("/api/player-action", {
+          payload: { type: "vote", entryId: button.dataset.entry },
+        });
+      } catch (err) {
+        handleError(err);
+      }
+    }),
+  );
+
+  document.querySelectorAll('[data-action="vote-player"]').forEach((button) =>
+    button.addEventListener("click", async () => {
+      try {
+        await postWithSession("/api/player-action", {
+          payload: { type: "votePlayer", playerId: button.dataset.player },
+        });
+      } catch (err) {
+        handleError(err);
+      }
+    }),
+  );
+
+  document.querySelectorAll('[data-action="vote-card"]').forEach((button) =>
+    button.addEventListener("click", async () => {
+      try {
+        await postWithSession("/api/player-action", {
+          payload: { type: "vote", cardId: button.dataset.card },
+        });
+      } catch (err) {
+        handleError(err);
+      }
+    }),
+  );
+
+  document.querySelectorAll('[data-action="guess-rule"]').forEach((button) =>
+    button.addEventListener("click", async () => {
+      try {
+        await postWithSession("/api/player-action", {
+          payload: { type: "guessRule", value: button.dataset.value },
+        });
+      } catch (err) {
+        handleError(err);
+      }
+    }),
+  );
+
+  document
+    .querySelectorAll('[data-action="submit-voice-guess"]')
+    .forEach((button) =>
+      button.addEventListener("click", async () => {
+        try {
+          const entryId = button.dataset.entry;
+          const select = document.querySelector(
+            `select[data-guess-entry="${entryId}"]`,
+          );
+          await postWithSession("/api/player-action", {
+            payload: {
+              type: "submitVoiceGuess",
+              entryId,
+              playerId: select.value,
+            },
+          });
+        } catch (err) {
+          handleError(err);
         }
-      });
-    } catch (err) {
-      handleError(err);
-    }
-  });
-
-  const sentenceForm = $('sentenceForm');
-  if (sentenceForm) sentenceForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    try {
-      await postWithSession('/api/player-action', { payload: { type: 'submitSentence', value: $('sentenceInput').value } });
-    } catch (err) {
-      handleError(err);
-    }
-  });
-
-  const wordForm = $('wordForm');
-  if (wordForm) wordForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    try {
-      await postWithSession('/api/player-action', { payload: { type: 'submitWord', value: $('wordInput').value } });
-      $('wordInput').value = '';
-    } catch (err) {
-      handleError(err);
-    }
-  });
-
-  const voiceFallbackForm = $('voiceFallbackForm');
-  if (voiceFallbackForm) voiceFallbackForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    try {
-      await postWithSession('/api/player-action', {
-        payload: { type: 'submitAudio', clip: { kind: 'text', text: $('voiceFallbackInput').value.trim() } }
-      });
-      $('voiceFallbackInput').value = '';
-    } catch (err) {
-      handleError(err);
-    }
-  });
-
-  document.querySelectorAll('[data-action="select-mode"]').forEach((button) => button.addEventListener('click', async () => {
-    if (!isHost() || roomState?.status !== 'lobby') return;
-    $('modeSelect').value = button.dataset.mode;
-    try {
-      await saveLobbySettings();
-      showNotice(`${modesMeta[button.dataset.mode]?.name || 'Mode'} selected.`, 'success');
-    } catch (err) {
-      handleError(err);
-    }
-  }));
-
-  document.querySelectorAll('[data-action="vote-entry"]').forEach((button) => button.addEventListener('click', async () => {
-    try {
-      await postWithSession('/api/player-action', { payload: { type: 'vote', entryId: button.dataset.entry } });
-    } catch (err) {
-      handleError(err);
-    }
-  }));
-
-  document.querySelectorAll('[data-action="vote-player"]').forEach((button) => button.addEventListener('click', async () => {
-    try {
-      await postWithSession('/api/player-action', { payload: { type: 'votePlayer', playerId: button.dataset.player } });
-    } catch (err) {
-      handleError(err);
-    }
-  }));
-
-  document.querySelectorAll('[data-action="vote-card"]').forEach((button) => button.addEventListener('click', async () => {
-    try {
-      await postWithSession('/api/player-action', { payload: { type: 'vote', cardId: button.dataset.card } });
-    } catch (err) {
-      handleError(err);
-    }
-  }));
-
-  document.querySelectorAll('[data-action="guess-rule"]').forEach((button) => button.addEventListener('click', async () => {
-    try {
-      await postWithSession('/api/player-action', { payload: { type: 'guessRule', value: button.dataset.value } });
-    } catch (err) {
-      handleError(err);
-    }
-  }));
-
-  document.querySelectorAll('[data-action="submit-voice-guess"]').forEach((button) => button.addEventListener('click', async () => {
-    try {
-      const entryId = button.dataset.entry;
-      const select = document.querySelector(`select[data-guess-entry="${entryId}"]`);
-      await postWithSession('/api/player-action', { payload: { type: 'submitVoiceGuess', entryId, playerId: select.value } });
-    } catch (err) {
-      handleError(err);
-    }
-  }));
+      }),
+    );
 
   const recordBtn = document.querySelector('[data-action="start-recording"]');
-  if (recordBtn) recordBtn.addEventListener('click', startRecording);
+  if (recordBtn) recordBtn.addEventListener("click", startRecording);
 
   const stopBtn = document.querySelector('[data-action="stop-recording"]');
-  if (stopBtn) stopBtn.addEventListener('click', stopRecording);
+  if (stopBtn) stopBtn.addEventListener("click", stopRecording);
 
-  const submitClipBtn = document.querySelector('[data-action="submit-recording"]');
-  if (submitClipBtn) submitClipBtn.addEventListener('click', async () => {
-    if (!voiceDraft) return;
-    try {
-      await postWithSession('/api/player-action', { payload: { type: 'submitAudio', clip: voiceDraft } });
-    } catch (err) {
-      handleError(err);
-    }
-  });
+  const submitClipBtn = document.querySelector(
+    '[data-action="submit-recording"]',
+  );
+  if (submitClipBtn)
+    submitClipBtn.addEventListener("click", async () => {
+      if (!voiceDraft) return;
+      try {
+        await postWithSession("/api/player-action", {
+          payload: { type: "submitAudio", clip: voiceDraft },
+        });
+      } catch (err) {
+        handleError(err);
+      }
+    });
 
-  const clearClipBtn = document.querySelector('[data-action="clear-recording"]');
-  if (clearClipBtn) clearClipBtn.addEventListener('click', () => {
-    voiceDraft = null;
-    showNotice('Draft recording discarded.', 'info');
-    render();
-  });
+  const clearClipBtn = document.querySelector(
+    '[data-action="clear-recording"]',
+  );
+  if (clearClipBtn)
+    clearClipBtn.addEventListener("click", () => {
+      voiceDraft = null;
+      showNotice("Draft recording discarded.", "info");
+      render();
+    });
 }
 
 async function startRecording() {
@@ -570,21 +780,31 @@ async function startRecording() {
       if (event.data.size > 0) recordChunks.push(event.data);
     };
     mediaRecorder.onstop = async () => {
-      const blob = new Blob(recordChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+      const blob = new Blob(recordChunks, {
+        type: mediaRecorder.mimeType || "audio/webm",
+      });
       const dataUrl = await blobToDataUrl(blob);
-      voiceDraft = { kind: 'audio', dataUrl, mimeType: blob.type || 'audio/webm' };
+      voiceDraft = {
+        kind: "audio",
+        dataUrl,
+        mimeType: blob.type || "audio/webm",
+      };
       stream.getTracks().forEach((track) => track.stop());
       render();
     };
     mediaRecorder.start();
     render();
   } catch (_) {
-    showNotice('Microphone access failed. You can use the text fallback instead.', 'error');
+    showNotice(
+      "Microphone access failed. You can use the text fallback instead.",
+      "error",
+    );
   }
 }
 
 function stopRecording() {
-  if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+  if (mediaRecorder && mediaRecorder.state === "recording")
+    mediaRecorder.stop();
 }
 
 function blobToDataUrl(blob) {
@@ -596,7 +816,7 @@ function blobToDataUrl(blob) {
 }
 
 (async function init() {
-  renderConnection('Connecting...');
+  renderConnection("Connecting...");
   try {
     await fetchModes();
   } catch (err) {
