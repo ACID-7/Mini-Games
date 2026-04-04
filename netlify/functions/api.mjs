@@ -4,7 +4,10 @@ import { createFirebaseStore } from '../../lib/firebase-store.mjs';
 export default async (request) => {
   const api = createGameApi(createFirebaseStore());
   const url = new URL(request.url);
-  const pathname = url.pathname.replace(/^\/\.netlify\/functions\/api/, '') || '/';
+  const rawPath = url.pathname.replace(/^\/\.netlify\/functions\/api/, "");
+  const pathname = rawPath.startsWith("/api")
+    ? rawPath
+    : `/api${rawPath || ""}`;
   let body = {};
 
   if (request.method !== 'GET' && request.method !== 'HEAD') {
