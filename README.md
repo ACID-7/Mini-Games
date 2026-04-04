@@ -16,7 +16,7 @@ Party Fusion is a lightweight browser-based multiplayer party game app that comb
 
 ## Tech
 - Static frontend in `public/`
-- Shared game API for local Node and Netlify Functions
+- Shared game API for Netlify Functions
 - Firebase Realtime Database room storage
 - Polling-based state sync
 
@@ -26,10 +26,10 @@ npm install
 npm start
 ```
 
-Then open `http://localhost:3000` in multiple browser tabs/devices.
+Then open the local Netlify dev URL shown in the terminal, usually `http://localhost:8888`.
 
 ## Use Firebase Realtime Database
-- Both `server.js` and `netlify/functions/api.mjs` use Realtime Database for room storage.
+- `netlify/functions/api.mjs` uses Realtime Database for room storage.
 - Room creation, updates, and deletion all go through the same store interface.
 - When the last player leaves a room, the room entry is deleted immediately from Realtime Database.
 - If no env var is supplied, the app defaults to project `minigames-ee135`.
@@ -38,7 +38,7 @@ Then open `http://localhost:3000` in multiple browser tabs/devices.
 - Optional: change the storage path with `FIREBASE_ROOM_NAMESPACE` (defaults to `partyFusionRooms`).
 - Your Realtime Database rules must allow the server process to read and write under the configured namespace.
 
-Firebase is only the data store here. The app still needs a trusted backend entrypoint to protect hidden game state, validate turns, score rounds, and keep database credentials off the client.
+Firebase is the room data store. The game rules and writes still run through the serverless function so turn validation, hidden information, and scoring stay authoritative.
 
 ## Deploy to Netlify
 - Publish directory: `public`
@@ -52,7 +52,6 @@ Firebase is only the data store here. The app still needs a trusted backend entr
 - Sync uses lightweight polling for simplicity.
 
 ## Project structure
-- `server.js` - local dev server for running the app with plain Node outside Netlify
 - `lib/game-engine.mjs` - shared game rules and API handling
 - `lib/firebase-store.mjs` - Firebase Realtime Database room storage
 - `netlify/functions/api.mjs` - Netlify serverless API entrypoint

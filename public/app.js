@@ -11,8 +11,14 @@ let noticeHandle = null;
 let lastNoticeKey = "";
 let lastNoticeAt = 0;
 let lastSyncError = "";
+let lastRenderedStateKey = "";
 
 const $ = (id) => document.getElementById(id);
+
+function apiUrl(path = "") {
+  const normalized = String(path || "").replace(/^\/api/, "");
+  return `/.netlify/functions/api${normalized}`;
+}
 
 function escapeHtml(value = "") {
   return String(value)
@@ -88,25 +94,73 @@ function getDynamicInputDefaults() {
   };
 }
 
-function captureDynamicInputValues() {
+function captureDynamicInputState() {
   const values = {};
+  const activeElement = document.activeElement;
+  const focusedId =
+    activeElement && activeElement.id && $(activeElement.id) === activeElement
+      ? activeElement.id
+      : "";
+  const selection =
+    focusedId &&
+    typeof activeElement.selectionStart === "number" &&
+    typeof activeElement.selectionEnd === "number"
+      ? {
+          start: activeElement.selectionStart,
+          end: activeElement.selectionEnd,
+        }
+      : null;
 
   Object.keys(getDynamicInputDefaults()).forEach((id) => {
     const el = $(id);
     if (el) values[id] = el.value;
   });
 
-  return values;
+  return { values, focusedId, selection };
 }
 
-function restoreDynamicInputValues(values = {}) {
+function restoreDynamicInputState(inputState = {}) {
   const defaults = getDynamicInputDefaults();
+  const values = inputState.values || {};
 
   Object.entries(defaults).forEach(([id, fallback]) => {
     const el = $(id);
     if (!el) return;
     el.value = values[id] ?? fallback;
   });
+
+  if (inputState.focusedId) {
+    const el = $(inputState.focusedId);
+    if (el && !el.disabled) {
+      el.focus();
+      if (
+        inputState.selection &&
+        typeof el.setSelectionRange === "function" &&
+        typeof inputState.selection.start === "number" &&
+        typeof inputState.selection.end === "number"
+      ) {
+        el.setSelectionRange(
+          inputState.selection.start,
+          inputState.selection.end,
+        );
+      }
+    }
+  }
+}
+
+function stableStringify(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+  }
+
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+      .join(",")}}`;
+  }
+
+  return JSON.stringify(value);
 }
 
 function renderRoomSummary() {
@@ -189,14 +243,14 @@ async function api(path, body, method = "POST") {
     options.body = JSON.stringify(body || {});
   }
 
-  const response = await fetch(path, options);
+  const response = await fetch(apiUrl(path), options);
   const contentType = response.headers.get("content-type") || "";
 
   if (!contentType.includes("application/json")) {
     const text = await response.text();
     if (/<!doctype html/i.test(text)) {
       throw new Error(
-        "The UI is being served without the Party Fusion backend. Start the app with `npm start` and open http://localhost:3000.",
+        "The Party Fusion function endpoint is unavailable. Run the app with `npm start` so Netlify Functions are available.",
       );
     }
     throw new Error("Unexpected server response.");
@@ -257,14 +311,19 @@ async function refreshState() {
 
   try {
     renderConnection("Syncing...");
-    roomState = await api(
+    const nextRoomState = await api(
       `/api/state?roomCode=${encodeURIComponent(session.roomCode)}&playerId=${encodeURIComponent(session.playerId)}`,
       null,
       "GET",
     );
     renderConnection("Connected");
     lastSyncError = "";
-    render();
+    const nextStateKey = stableStringify(nextRoomState);
+    roomState = nextRoomState;
+    if (nextStateKey !== lastRenderedStateKey) {
+      lastRenderedStateKey = nextStateKey;
+      render();
+    }
   } catch (err) {
     renderConnection("Disconnected");
     if (err.message !== lastSyncError) {
@@ -424,6 +483,7 @@ $("leaveBtn").addEventListener("click", async () => {
   saveSession(null);
   roomState = null;
   voiceDraft = null;
+  lastRenderedStateKey = "";
   if (pollHandle) clearInterval(pollHandle);
   render();
 });
@@ -434,6 +494,7 @@ function render() {
   $("roomSummary").classList.toggle("hidden", !roomState);
   $("phaseMeta").classList.toggle("hidden", !roomState);
   if (!roomState) {
+    lastRenderedStateKey = "";
     $("roomSummary").innerHTML = "";
     $("phaseMeta").innerHTML = "";
     return;
@@ -497,11 +558,11 @@ function render() {
   }
 
   // Preserve input values
-  const inputValues = captureDynamicInputValues();
+  const inputState = captureDynamicInputState();
 
   $("gameArea").innerHTML = renderGameArea();
   wireDynamicControls();
-  restoreDynamicInputValues(inputValues);
+  restoreDynamicInputState(inputState);
 }
 
 function renderScoreboard() {
