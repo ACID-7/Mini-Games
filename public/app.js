@@ -16,8 +16,8 @@ let lastRenderedStateKey = "";
 const $ = (id) => document.getElementById(id);
 
 function apiUrl(path = "") {
-  const normalized = String(path || "").replace(/^\/api/, "");
-  return `/.netlify/functions/api${normalized}`;
+  const normalized = String(path || "");
+  return normalized.startsWith("/api") ? normalized : `/api${normalized}`;
 }
 
 function escapeHtml(value = "") {
