@@ -409,6 +409,13 @@ body::before {
   gap: 12px;
 }
 
+.room-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .room-head h2,
 .card h3,
 .form-card h2 {
@@ -541,7 +548,8 @@ button:disabled {
 }
 
 .mode-card:hover {
-  box-shadow: none;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
   filter: none;
   border-color: rgba(255, 226, 168, 0.28);
 }
@@ -567,6 +575,13 @@ button:disabled {
   font-size: 0.9rem;
 }
 
+.inline-note {
+  margin: 0 0 14px;
+  color: var(--accent-3);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
 .banner {
   margin-bottom: 16px;
   padding: 16px 18px;
@@ -574,6 +589,40 @@ button:disabled {
   color: #fff8ea;
   background: linear-gradient(135deg, rgba(255, 140, 66, 0.22), rgba(255, 227, 138, 0.16));
   border: 1px solid rgba(255, 227, 138, 0.24);
+}
+
+.status-strip,
+.phase-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.summary-chip,
+.meta-pill {
+  min-width: 132px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.045);
+  backdrop-filter: blur(20px);
+}
+
+.summary-chip span,
+.meta-pill span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.summary-chip strong,
+.meta-pill strong {
+  display: block;
+  line-height: 1.35;
 }
 
 .phase-title {
@@ -782,5 +831,20 @@ footer.note {
   .room-head {
     flex-direction: column;
     align-items: start;
+  }
+
+  .room-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .room-actions button {
+    flex: 1 1 0;
+  }
+
+  .summary-chip,
+  .meta-pill {
+    min-width: calc(50% - 6px);
+    flex: 1 1 0;
   }
 }

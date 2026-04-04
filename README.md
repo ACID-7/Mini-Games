@@ -32,9 +32,13 @@ Then open `http://localhost:3000` in multiple browser tabs/devices.
 - Both `server.js` and `netlify/functions/api.mjs` use Realtime Database for room storage.
 - Room creation, updates, and deletion all go through the same store interface.
 - When the last player leaves a room, the room entry is deleted immediately from Realtime Database.
-- The current default Firebase config targets project `minigames-ee135`.
-- Override any Firebase setting with env vars such as `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET`, `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_APP_ID`, and `FIREBASE_MEASUREMENT_ID`.
-- Your Realtime Database rules must allow the server process to read and write under `partyFusionRooms`.
+- If no env var is supplied, the app defaults to project `minigames-ee135`.
+- Configure either `FIREBASE_DATABASE_URL` directly or `FIREBASE_PROJECT_ID` so the server can resolve `https://<project-id>-default-rtdb.firebaseio.com`.
+- If your rules are not public, set `FIREBASE_DATABASE_SECRET` or `FIREBASE_AUTH_TOKEN` for authenticated REST requests.
+- Optional: change the storage path with `FIREBASE_ROOM_NAMESPACE` (defaults to `partyFusionRooms`).
+- Your Realtime Database rules must allow the server process to read and write under the configured namespace.
+
+Firebase is only the data store here. The app still needs a trusted backend entrypoint to protect hidden game state, validate turns, score rounds, and keep database credentials off the client.
 
 ## Deploy to Netlify
 - Publish directory: `public`
@@ -48,7 +52,7 @@ Then open `http://localhost:3000` in multiple browser tabs/devices.
 - Sync uses lightweight polling for simplicity.
 
 ## Project structure
-- `server.js` - local dev server
+- `server.js` - local dev server for running the app with plain Node outside Netlify
 - `lib/game-engine.mjs` - shared game rules and API handling
 - `lib/firebase-store.mjs` - Firebase Realtime Database room storage
 - `netlify/functions/api.mjs` - Netlify serverless API entrypoint

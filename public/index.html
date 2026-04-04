@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#112536" />
     <title>Party Fusion</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -131,11 +132,19 @@
                 <h2>Room <span id="roomCode"></span></h2>
                 <p id="statusText"></p>
               </div>
-              <button id="leaveBtn" class="secondary">Leave</button>
+              <div class="room-actions">
+                <button id="copyCodeBtn" type="button" class="secondary">
+                  Copy code
+                </button>
+                <button id="leaveBtn" type="button" class="secondary">
+                  Leave
+                </button>
+              </div>
             </div>
 
             <div class="card">
               <h3>Players</h3>
+              <p id="playerCount" class="small"></p>
               <div id="playerList" class="stack"></div>
             </div>
 
@@ -160,12 +169,14 @@
                 />
               </label>
               <div class="button-row">
-                <button id="saveSettingsBtn">Save settings</button>
-                <button id="startBtn">Start game</button>
+                <button id="saveSettingsBtn" type="button">Save settings</button>
+                <button id="startBtn" type="button">Start game</button>
               </div>
               <div class="button-row wrap">
-                <button id="advanceBtn" class="secondary">Advance phase</button>
-                <button id="restartBtn" class="secondary">
+                <button id="advanceBtn" type="button" class="secondary">
+                  Advance phase
+                </button>
+                <button id="restartBtn" type="button" class="secondary">
                   Return to lobby
                 </button>
               </div>
@@ -179,6 +190,8 @@
 
           <main class="panel main-panel">
             <div id="banner" class="banner hidden"></div>
+            <div id="roomSummary" class="status-strip hidden"></div>
+            <div id="phaseMeta" class="phase-meta hidden"></div>
             <div id="privateInfo" class="card hidden"></div>
             <div id="gameArea"></div>
           </main>

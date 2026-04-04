@@ -12,7 +12,10 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const store = createFirebaseStore();
 const api = createGameApi(store);
-const storeLabel = 'Firebase Firestore';
+const storeInfo = store.getInfo ? store.getInfo() : null;
+const storeLabel = storeInfo
+  ? `Firebase Realtime Database (${storeInfo.namespace})`
+  : 'Firebase Realtime Database';
 
 function getMime(filePath) {
   if (filePath.endsWith('.html')) return 'text/html; charset=utf-8';
