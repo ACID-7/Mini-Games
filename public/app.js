@@ -567,23 +567,59 @@ function render() {
 
 function renderScoreboard() {
   const sorted = [...roomState.players].sort((a, b) => b.score - a.score);
-  return `<div class="card"><h3>Scoreboard</h3><div class="scoreboard">${sorted.map((player) => `<div class="score-row"><div>${escapeHtml(player.name)}</div><div class="highlight">${player.score}</div></div>`).join("")}</div></div>`;
+  return `<div class="card score-card"><div class="section-kicker">Scoreboard</div><h3>Current standings</h3><div class="scoreboard">${sorted.map((player, index) => `<div class="score-row ${index === 0 ? "leader" : ""}"><div><strong>${escapeHtml(player.name)}</strong><div class="small">${player.id === roomState.selfId ? "You" : index === 0 ? "Leading" : "In play"}</div></div><div class="highlight">${player.score}</div></div>`).join("")}</div></div>`;
+}
+
+function getPhaseInstruction() {
+  if (!roomState) return "";
+
+  const instructions = {
+    lobby: isHost()
+      ? "Pick a mode, confirm rounds, then start when everyone has joined."
+      : "Wait for the host to choose the mode and start the room.",
+    writing: "Write your response clearly. The round will move on as soon as everyone submits.",
+    prompting: "Answer the current prompt. The next prompt opens automatically when all players answer.",
+    outsider_guess: "Only the outsider can act here. Everyone else waits for the guess.",
+    interaction: "Chat naturally and work your hidden objective into the conversation.",
+    answering: "Submit your answer. Voting opens automatically once everyone is done.",
+    recording: "Record or type your clip. Guessing opens automatically after all clips are in.",
+    editing: "Watch turn order carefully. Only the active player can edit right now.",
+    guessing: "Lock one guess. The reveal opens automatically after everyone submits.",
+    voting: "Vote once. Results open automatically as soon as all votes are in.",
+    collecting: "Answer the current memory prompt. The next step opens when everyone submits.",
+    reveal: "Review the outcome, then continue if another round remains.",
+    game_over: "Return to the lobby to start a new mode.",
+  };
+
+  return instructions[roomState.phase] || "Follow the current round instructions.";
+}
+
+function renderGameRail() {
+  return `<div class="card rail-card"><div class="section-kicker">Live round</div><h3>${escapeHtml(modesMeta[roomState.mode]?.name || toTitle(roomState.mode))}</h3><p class="small rail-copy">${escapeHtml(getPhaseInstruction())}</p><div class="rail-stats"><div class="rail-stat"><span>Phase</span><strong>${escapeHtml(toTitle(roomState.phase))}</strong></div><div class="rail-stat"><span>Round</span><strong>${roomState.currentRound || 0}/${roomState.rounds}</strong></div><div class="rail-stat"><span>Players</span><strong>${roomState.players.length}</strong></div></div></div>${renderScoreboard()}`;
+}
+
+function renderGameShell(content) {
+  return `<div class="game-stage"><div class="game-main">${content}</div><aside class="game-side">${renderGameRail()}</aside></div>`;
 }
 
 function renderGameArea() {
   if (roomState.status === "lobby") {
-    return `<div class="card"><h2 class="phase-title">Choose a game mode</h2><p class="phase-subtitle">${isHost() ? "Tap a card or use the selector. Changes save automatically while the room is in the lobby." : "The host chooses the mode for the room. All modes support 3-10 players."}</p><div class="choice-grid">${Object.entries(
+    return renderGameShell(
+      `<div class="card stage-card"><div class="section-kicker">Lobby setup</div><h2 class="phase-title">Choose a game mode</h2><p class="phase-subtitle">${isHost() ? "Tap a card or use the selector. Changes save automatically while the room is in the lobby." : "The host chooses the mode for the room. All modes support 3-10 players."}</p><div class="choice-grid">${Object.entries(
       modesMeta,
     )
       .map(
         ([key, meta]) =>
           `<button type="button" class="choice-card mode-card ${roomState.mode === key ? "active" : ""}" data-action="select-mode" data-mode="${key}" ${!isHost() || roomState.status !== "lobby" ? "disabled" : ""}><strong>${escapeHtml(meta.name)}</strong><p class="small">${escapeHtml(meta.summary)}</p></button>`,
       )
-      .join("")}</div></div>${renderScoreboard()}`;
+      .join("")}</div></div>`,
+    );
   }
 
   if (roomState.phase === "game_over" || roomState.status === "finished") {
-    return `<div class="card"><h2 class="phase-title">Match complete</h2><p class="phase-subtitle">Use "Return to lobby" to start another mode.</p></div>${renderScoreboard()}`;
+    return renderGameShell(
+      `<div class="card stage-card"><div class="section-kicker">Match complete</div><h2 class="phase-title">Match complete</h2><p class="phase-subtitle">Use "Return to lobby" to start another mode.</p></div>`,
+    );
   }
 
   const renderers = {
@@ -599,7 +635,11 @@ function renderGameArea() {
     memory_trap: renderMemoryTrap,
   };
 
-  return `${renderers[roomState.mode] ? renderers[roomState.mode]() : '<div class="card">Unknown mode.</div>'}${renderScoreboard()}`;
+  return renderGameShell(
+    renderers[roomState.mode]
+      ? renderers[roomState.mode]()
+      : '<div class="card stage-card">Unknown mode.</div>',
+  );
 }
 
 function renderLastMessage() {
